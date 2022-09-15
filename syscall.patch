@@ -1,0 +1,87 @@
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index c84d12608cd2..354d876f2cff 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -417,3 +417,4 @@
+ 547	x32	pwritev2		compat_sys_pwritev64v2
+ # This is the end of the legacy x32 range.  Numbers 548 and above are
+ # not special and are not to be used for x32-specific syscalls.
++548	common	s2_encrypt		sys_s2_encrypt
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index a34b0f9a9972..15f03e81e42b 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -1385,4 +1385,5 @@ int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
+ 		int __user *optlen);
+ int __sys_setsockopt(int fd, int level, int optname, char __user *optval,
+ 		int optlen);
++asmlinkage int sys_s2_encrypt(char *text, unsigned int key);
+ #endif
+diff --git a/kernel/Makefile b/kernel/Makefile
+index a7e1f49ab2b3..78292a05c9a7 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -10,7 +10,8 @@ obj-y     = fork.o exec_domain.o panic.o \
+ 	    extable.o params.o platform-feature.o \
+ 	    kthread.o sys_ni.o nsproxy.o \
+ 	    notifier.o ksysfs.o cred.o reboot.o \
+-	    async.o range.o smpboot.o ucount.o regset.o
++	    async.o range.o smpboot.o ucount.o regset.o \
++	    sample_encryption.o
+ 
+ obj-$(CONFIG_USERMODE_DRIVER) += usermode_driver.o
+ obj-$(CONFIG_MODULES) += kmod.o
+diff --git a/kernel/sample_encryption.c b/kernel/sample_encryption.c
+new file mode 100644
+index 000000000000..1abe62e448de
+--- /dev/null
++++ b/kernel/sample_encryption.c
+@@ -0,0 +1,28 @@
++#include <linux/kernel.h>
++#include <linux/syscalls.h>
++
++int ksys_s2_encrypt(char *text, unsigned int key)
++{
++	int iterator = 0;
++
++	if((key < 1) || (key > 5)
++	{
++		return EINVAL;
++	}
++	else
++	{
++		printk("Original string: %s\n",text);
++		for(iterator = 0; iterator < strlen(text); iterator++)
++		{
++			text[iterator] += key;
++		}
++		printk("Encrypted string: %s\n",text);
++		return 0;
++	}
++}
++
++SYSCALL_DEFINE2(s2_encrypt, char *, input_string, unsigned int, security_key)
++{
++	return ksys_s2_encrypt(input_string, security_key);
++}
++
+diff --git a/net/socket.c b/net/socket.c
+index 96300cdc0625..233e23a106e4 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1944,6 +1944,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
+ SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
+ 		int __user *, upeer_addrlen)
+ {
++	printk("[INFO]: Entry to accept() syscall\n");
+ 	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
+ }
+ 
+@@ -2003,6 +2004,7 @@ int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
+ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
+ 		int, addrlen)
+ {
++	printk("[INFO]: Entry to connect() syscall\n");
+ 	return __sys_connect(fd, uservaddr, addrlen);
+ }
+ 
