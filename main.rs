@@ -67,7 +67,7 @@ fn kobject_add(kobj: &kobject, parent: &kobject, fmt: &'static str, name: &'stat
 }
 
 fn kobject_create_and_add(name: &'static str, parent: &kobject) -> bool{
-    let mut kobj_ptr: bool = false;
+    let mut kobj_ptr: bool = true;
     let mut retval: i32 = 0;
     // kobj = kobj_create();
     if !kobj_ptr{
